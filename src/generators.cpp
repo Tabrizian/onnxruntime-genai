@@ -172,17 +172,23 @@ RoamingArray<int32_t> Generator::GetSequence(int index) const {
 }
 
 TokenSequences Generate(const Model& model, const GeneratorParams& params) {
-  auto generator = CreateGenerator(model, params);
+  // if (model.NeedsEncoder()) {
+  //   auto encoder = CreateEncoder(model, params);
+  //   encoder->Encode();
+  //   params.
+  // }
 
-  while (!generator->IsDone()) {
-    generator->ComputeLogits();
-    generator->GenerateNextToken();
+  auto decoder = CreateGenerator(model, params);
+
+  while (!decoder->IsDone()) {
+    decoder->ComputeLogits();
+    decoder->GenerateNextToken();
   }
 
   TokenSequences result;
 
   for (int i = 0; i < params.batch_size; i++) {
-    auto sequence = generator->search_->GetSequence(i);
+    auto sequence = decoder->search_->GetSequence(i);
     auto sequence_cpu = sequence.GetCPU();
 
     auto& v = result.emplace_back();

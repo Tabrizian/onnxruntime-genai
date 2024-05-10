@@ -38,6 +38,7 @@ namespace Generators {
 struct Model;
 struct State;
 struct Search;
+struct Tokenizer;
 
 // OgaSequences are a vector of int32 vectors
 using TokenSequences = std::vector<std::vector<int32_t>>;
@@ -64,6 +65,7 @@ struct GeneratorParams : std::enable_shared_from_this<GeneratorParams> {
   int max_batch_size{0};
   bool use_cuda_graph{};
   int sequence_length{};
+  int hidden_size{};
   int BatchBeamSize() const { return search.num_beams * batch_size; }
 
   DeviceType device_type{DeviceType::CPU};
@@ -113,6 +115,15 @@ struct GeneratorParams : std::enable_shared_from_this<GeneratorParams> {
   bool is_cuda_graph_enabled_{};
 };
 
+struct Encoder {
+  Encoder(const Model& model, const GeneratorParams& params);
+
+  void Encode();
+
+  std::shared_ptr<const Model> model_;
+  std::unique_ptr<State> state_;
+};
+
 struct Generator {
   Generator(const Model& model, const GeneratorParams& params);
 
@@ -127,6 +138,9 @@ struct Generator {
   std::unique_ptr<Search> search_;
   bool computed_logits_{};  // Set to true in ComputeLogits() and false after appending a token to ensure a 1 to 1 call ratio
 };
+
+// Moving forward, the Generator is a decoder only model state executor
+using Decoder = Generator;
 
 struct OrtGlobals {
   OrtGlobals();
@@ -153,5 +167,9 @@ std::vector<std::vector<int32_t>> Generate(const Model& model, const GeneratorPa
 
 float Float16ToFloat32(uint16_t v);  // v is a IEEE 752-2008 binary16 format, 1 sign bit, 5 bit exponent, 10 bit fraction
 void top_k_indices(std::span<int32_t> top_k, std::span<const float> inputs);
+
+// convert_images_texts_to_inputs
+std::vector<int32_t> ProcessImagePrompt(const Tokenizer& tokenizer, const std::string& prompt,
+                                        const size_t num_patches, const size_t num_image_tokens);
 
 }  // namespace Generators

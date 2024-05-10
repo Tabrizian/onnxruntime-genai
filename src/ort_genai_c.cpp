@@ -247,6 +247,30 @@ OGA_EXPORT OgaResult* OGA_API_CALL OgaGetCurrentGpuDeviceId(int* device_id) {
   OGA_CATCH
 }
 
+OgaResult* OGA_API_CALL OgaCreateMultiModalProcessor(const OgaModel* model, OgaMultiModalProcessor** out) {
+  OGA_TRY
+  auto processor = reinterpret_cast<const Generators::Model*>(model)->CreateMultiModalProcessor();
+  processor->external_owner_ = processor;
+  *out = reinterpret_cast<OgaMultiModalProcessor*>(processor.get());
+  return nullptr;
+  OGA_CATCH
+}
+
+OgaResult* OGA_API_CALL OgaProccessorProcess(const OgaMultiModalProcessor* p, const char* prompt, OgaSequences* sequences) {
+  OGA_TRY
+  auto& processor = *reinterpret_cast<const Generators::MultiModalProcessor*>(p);
+  // something = processor.image_processor->PreProcess(images);
+  std::vector<int32_t> input_ids = Generators::ProcessImagePrompt(
+      *processor.tokenizer_, prompt,
+      processor.image_processor_->num_patches_,
+      processor.image_processor_->num_image_tokens_);
+  auto& token_sequences = *reinterpret_cast<Generators::TokenSequences*>(sequences);
+  token_sequences.emplace_back(input_ids);
+
+  return nullptr;
+  OGA_CATCH
+}
+
 void OGA_API_CALL OgaDestroyResult(OgaResult* p) {
   delete reinterpret_cast<Generators::Result*>(p);
 }
@@ -277,5 +301,9 @@ void OGA_API_CALL OgaDestroyTokenizer(OgaTokenizer* p) {
 
 void OGA_API_CALL OgaDestroyTokenizerStream(OgaTokenizerStream* p) {
   delete reinterpret_cast<Generators::TokenizerStream*>(p);
+}
+
+void OGA_API_CALL OgaDestroyMultiModalProcessor(OgaMultiModalProcessor* p) {
+  reinterpret_cast<Generators::MultiModalProcessor*>(p)->external_owner_ = nullptr;
 }
 }

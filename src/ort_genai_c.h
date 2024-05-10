@@ -39,6 +39,7 @@ typedef struct OgaModel OgaModel;
 typedef struct OgaSequences OgaSequences;
 typedef struct OgaTokenizer OgaTokenizer;
 typedef struct OgaTokenizerStream OgaTokenizerStream;
+typedef struct OgaMultiModalProcessor OgaMultiModalProcessor;
 
 /* \brief Call this on process exit to cleanly shutdown the genai library & its onnxruntime usage
  */
@@ -208,14 +209,22 @@ OGA_EXPORT const int32_t* OGA_API_CALL OgaGenerator_GetSequenceData(const OgaGen
 OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateTokenizer(const OgaModel* model, OgaTokenizer** out);
 OGA_EXPORT void OGA_API_CALL OgaDestroyTokenizer(OgaTokenizer*);
 
+OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateMultiModalProcessor(const OgaModel* model, OgaMultiModalProcessor** out);
+OGA_EXPORT void OGA_API_CALL OgaDestroyMultiModalProcessor(OgaMultiModalProcessor* processor);
+
 /* Encodes a single string and adds the encoded sequence of tokens to the OgaSequences. The OgaSequences must be freed with OgaDestroySequences
    when it is no longer needed.
  */
 OGA_EXPORT OgaResult* OGA_API_CALL OgaTokenizerEncode(const OgaTokenizer*, const char* str, OgaSequences* sequences);
 
+OGA_EXPORT OgaResult* OGA_API_CALL OgaLoadImage(const OgaMultiModalProcessor*, const char* image_path, OgaSequences* sequences);
+
+OGA_EXPORT OgaResult* OGA_API_CALL OgaProcessorProcess(const OgaMultiModalProcessor*, const char* str, OgaSequences* sequences, OgaSequences* input_sequences);
+
 /* Decode a single token sequence and returns a null terminated utf8 string. out_string must be freed with OgaDestroyString
  */
 OGA_EXPORT OgaResult* OGA_API_CALL OgaTokenizerDecode(const OgaTokenizer*, const int32_t* tokens, size_t token_count, const char** out_string);
+OGA_EXPORT OgaResult* OGA_API_CALL OgaProcessorDecode(const OgaMultiModalProcessor*, const int32_t* tokens, size_t token_count, const char** out_string);
 
 /* OgaTokenizerStream is to decoded token strings incrementally, one token at a time.
  */

@@ -45,6 +45,37 @@ struct Config {
       std::string filename;
     } encoder_decoder_init;
 
+    struct Embeddings {
+      std::string filename;
+
+      struct Inputs {
+        std::string input_ids{"input_ids"};
+      } inputs;
+
+      struct Outputs {
+        std::string embeddings{"output_embeddings"};
+      } outputs;
+    } embeddings;
+
+    struct Vision {
+      std::string filename;
+
+      struct ImageProcessor {
+        int num_crops{};
+        int num_image_tokens{};
+      } image_processor;
+
+      struct Inputs {
+        std::string embeddings{"input_embeddings"};
+        std::string pixel_values{"pixel_values"};
+        std::string image_sizes{"image_sizes"};
+      } inputs;
+
+      struct Outputs {
+        std::string embeddings{"image_embeddings"};
+      } outputs;
+    } vision;
+
     struct Decoder {
       std::string filename;
       SessionOptions session_options;
@@ -57,6 +88,7 @@ struct Config {
 
       struct Inputs {
         std::string input_ids{"input_ids"};
+        std::string embeddings{"input_embeddings"};
         std::string position_ids{"position_ids"};
         std::string attention_mask{"attention_mask"};
         std::string seqlens_k{"seqlens_k"};

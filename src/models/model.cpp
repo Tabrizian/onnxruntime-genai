@@ -191,10 +191,17 @@ Ort::Allocator* GetCudaAllocator(OrtSession& session) {
 #endif
 
 SessionInfo::SessionInfo(OrtSession& session) {
+  Add(session);
+}
+
+void SessionInfo::Add(OrtSession& session) {
   auto input_names = session.GetInputNames();
   std::vector<ONNXTensorElementDataType> input_types(input_names.size());
   for (size_t i = 0; i < input_types.size(); i++) {
     auto input_type = session.GetInputTypeInfo(i)->GetTensorTypeAndShapeInfo().GetElementType();
+    auto found_input = inputs_.find(input_names[i]);
+    if (found_input != inputs_.end() && found_input->second != input_type)
+      throw std::runtime_error("Model input type mismatch: " + input_names[i] + " expected " + std::to_string(found_input->second) + " got " + std::to_string(input_type));
     inputs_.emplace(std::make_pair(std::move(input_names[i]), input_type));
   }
 
@@ -385,6 +392,10 @@ std::shared_ptr<Tokenizer> Model::CreateTokenizer() const {
   return std::make_shared<Tokenizer>(*config_);
 }
 
+std::shared_ptr<MultiModalProcessor> Model::CreateMultiModalProcessor() const {
+  return std::make_shared<MultiModalProcessor>(*config_);
+}
+
 std::shared_ptr<Model> CreateModel(OrtEnv& ort_env, const char* config_path) {
   auto config = std::make_unique<Config>(config_path);
 
@@ -394,6 +405,8 @@ std::shared_ptr<Model> CreateModel(OrtEnv& ort_env, const char* config_path) {
     return std::make_shared<DecoderOnly_Model>(std::move(config), ort_env);
   if (config->model.type == "whisper")
     return std::make_shared<Whisper_Model>(std::move(config), ort_env);
+  // if (config->model.type == "multimodal")
+  //   return std::make_shared<Multimodal_Model>(std::move(config), ort_env);
 
   throw std::runtime_error("Unsupported model_type in config.json: " + config->model.type);
 }
@@ -496,6 +509,17 @@ std::unique_ptr<OrtValue> Model::ExpandInputs(std::unique_ptr<OrtValue>& input, 
       throw std::runtime_error("ExpandInputs - Unsupported device type");
   }
   return expanded;
+}
+
+ImageProcessor::ImageProcessor(Config& config)
+    : num_patches_(config.model.vision.image_processor.num_crops + 1),
+      num_image_tokens_(config.model.vision.image_processor.num_image_tokens) {}
+
+MultiModalProcessor::MultiModalProcessor(Config& config) : tokenizer_{std::make_shared<Tokenizer>(config)} {
+  // TODO: Add multimodal processor
+  if (!config.model.vision.filename.empty()) {
+    image_processor_ = std::make_shared<ImageProcessor>(config);
+  }
 }
 
 }  // namespace Generators

@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 
+import onnxruntime
 import onnxruntime_genai as og
 from _test_utils import run_subprocess
 
@@ -53,11 +54,12 @@ def run_model(model_path: str | bytes | os.PathLike):
     output_sequences = model.generate(params)
     output = tokenizer.decode_batch(output_sequences)
     assert output
+    print(output)
 
 
 if __name__ == "__main__":
-    for model_name in ["microsoft/phi-2"]:
-        for precision in ["int4", "fp32"]:
+    for model_name in ["meta-llama/Meta-Llama-3-8B"]:
+        for precision in ["int4"]:
             with tempfile.TemporaryDirectory() as temp_dir:
                 device = "cuda" if og.is_cuda_available() else "cpu"
                 download_model(temp_dir, device, model_name, precision)

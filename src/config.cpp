@@ -214,6 +214,45 @@ struct Decoder_Element : JSON::Element {
   Outputs_Element outputs_{v_.outputs};
 };
 
+struct ImageProcessor_Element : JSON::Element {
+  explicit ImageProcessor_Element(Config::Model::Vision::ImageProcessor& v) : v_{v} {}
+
+  void OnNumber(std::string_view name, double value) override {
+    if (name == "num_crops") {
+      v_.num_crops = static_cast<int>(value);
+    } else if (name == "num_image_tokens") {
+      v_.num_image_tokens = static_cast<int>(value);
+    } else
+      throw JSON::unknown_value_error{};
+  }
+
+ private:
+  Config::Model::Vision::ImageProcessor& v_;
+};
+
+struct Vision_Element : JSON::Element {
+  explicit Vision_Element(Config::Model::Vision& v) : v_{v} {}
+
+  void OnString(std::string_view name, std::string_view value) override {
+    if (name == "filename") {
+      v_.filename = value;
+    } else
+      throw JSON::unknown_value_error{};
+  }
+
+  Element& OnObject(std::string_view name) override {
+    if (name == "image_processor") {
+      return image_processor_;
+    }
+
+    throw JSON::unknown_value_error{};
+  }
+
+ private:
+  Config::Model::Vision& v_;
+  ImageProcessor_Element image_processor_{v_.image_processor};
+};
+
 struct Eos_Array_Element : JSON::Element {
   explicit Eos_Array_Element(Config::Model& v) : v_{v} {}
 
@@ -279,6 +318,9 @@ struct Model_Element : JSON::Element {
     if (name == "decoder") {
       return decoder_;
     }
+    if (name == "vision") {
+      return vision_;
+    }
     throw JSON::unknown_value_error{};
   }
 
@@ -287,6 +329,7 @@ struct Model_Element : JSON::Element {
   EncoderDecoderInit_Element encoder_decoder_init_{v_.encoder_decoder_init};
   Decoder_Element decoder_{v_.decoder};
   Eos_Array_Element eos_token_ids_{v_};
+  Vision_Element vision_{v_.vision};
 };
 
 struct Search_Element : JSON::Element {

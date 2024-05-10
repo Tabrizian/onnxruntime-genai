@@ -84,8 +84,28 @@ struct Tokenizer : std::enable_shared_from_this<Tokenizer> {
   int32_t pad_token_id_;
 };
 
+struct ImageProcessor {
+  ImageProcessor(Config& config);
+
+  size_t num_patches_{};  // num_crops + 1
+  size_t num_image_tokens_{};
+
+  // TODO(baijumeswani): add ortc image processor
+};
+
+struct MultiModalProcessor : std::enable_shared_from_this<MultiModalProcessor> {
+  MultiModalProcessor(Config& config);
+
+  std::shared_ptr<Tokenizer> tokenizer_;
+  std::shared_ptr<ImageProcessor> image_processor_;
+
+  std::shared_ptr<MultiModalProcessor> external_owner_;  // Set to 'this' when created by the C API to preserve lifetime
+};
+
 struct SessionInfo {
   SessionInfo(OrtSession& session);
+
+  void Add(OrtSession& session);
 
   bool HasInput(const std::string& name) const;
   bool HasOutput(const std::string& name) const;
@@ -103,11 +123,16 @@ struct Model : std::enable_shared_from_this<Model> {
 
   std::shared_ptr<Tokenizer> CreateTokenizer() const;
 
+  std::shared_ptr<MultiModalProcessor> CreateMultiModalProcessor() const;
+
   virtual std::unique_ptr<State> CreateState(RoamingArray<int32_t> sequence_lengths, const GeneratorParams& params) const = 0;
 
   std::unique_ptr<OrtValue> ExpandInputs(std::unique_ptr<OrtValue>& input, int num_beams) const;
 
   CapturedGraphPool* GetCapturedGraphPool() const { return captured_graph_pool_.get(); }
+
+  // By default, assume that the model is a
+  virtual bool NeedsEncoder() const { return false; }
 
   std::unique_ptr<Config> config_;
   std::unique_ptr<OrtSessionOptions> session_options_;
